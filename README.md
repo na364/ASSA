@@ -1,2 +1,2 @@
 # ASSA
-Atom Surface Sscattering Analysis
+Atom Surface Scattering Analysis
