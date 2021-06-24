@@ -54,12 +54,24 @@ classdef postprocess_dyfiles
                     meas = postprocess_dyfiles.fix_dy_file(tmp.meas);
                     meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive);
                     
+                    %perform Fourier transform and transform to get the
+                    %energy spectrum
+                    [base_current,alpha1,real_sig,imag_sig,~,E0, ~] = extract_pol_dyfiles(meas);
+                    [~,energy,~,corrected_spectrum]=...
+                        reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
+                    if energy(1)>energy(end)
+                        meas.Energ_meV=flip(energy-E0); meas.SKw=flip(corrected_spectrum);
+                    else
+                        meas.Energ_meV=energy-E0; meas.SKw=corrected_spectrum;
+                    end
+                    
                     processed_meas = meas;
                     save(filenameWithPath,'processed_meas','-append');
                 catch ME
                     disp(['File ' filename ' is nonexist/corrupt/lackOfInfo'])
                     continue
                 end
+                
             end
             close(h);
         end

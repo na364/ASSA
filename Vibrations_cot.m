@@ -670,6 +670,429 @@ classdef Vibrations_cot
                     fncName(17)={'lin_BG'};
                     fitFuncStr = [fitFuncStr '+y0'];
                     fitParams = [fitParams; 0 max(min(y),0.01) 0];
+                    
+                case 4
+                    
+                     % === Jump - Lorenzian
+                    fncName(1) = {'cl_Jump'};
+                    fitFuncStr = [fitFuncStr '+' '(a1/pi)*((a2/2)/(x^2+(a2/2)^2))'];
+%                     [exp1] = BProb_baravis(2.55,4,dK,[],112); fwhm_lorentz = (exp1*1e9)*2*SE_hbar*1000/SE_e;
+%                     a1=[0 3 0.1]; a2=[fwhm_lorentz*0.9 fwhm_lorentz*1.1 fwhm_lorentz];
+                    if dK < 0,  a1=[0 1 0.1]; a2=[0 10 0]; end
+                    if exist('a2_frm_isf','var'), a1=[0 1 0.1]; a2=[a2_frm_isf*0.95 a2_frm_isf*1.05 a2_frm_isf]; end
+                    fitParams = [fitParams; a1; a2];
+
+%                     fncName(2) = {'cl_Jump2'};
+%                     fitFuncStr = [fitFuncStr '+' '(a3/pi)*((a4/2)/(x^2+(a4/2)^2))'];                
+%                     if dK < 0,  a3=[0 3 0.7]; a4=[0 1 0]; end
+%                     if dK < 0.3,  a3=[0 3 0.7]; a4=[0 1 0]; end
+%                     fitParams = [fitParams; a3; a4];
+
+
+                    % === Balistic - Gaussian ===                    
+                    fncName(3) = {'cg_Balistic'};
+                    fitFuncStr = [fitFuncStr '+' 'b1*exp(-1*x^2/b2^2)'];
+                    fwhm_ballistic = 2*sqrt(log(2))*SE_hbar*abs(dK*1e10)*Vibrations_cot.get_v0(Ts,104.15)/SE_e*1000;%fwhm_ballistic = 2*sqrt(log(2))*SE_hbar*abs(dK*1e10)*Vibrations.get_v0(Ts,104.15)/SE_e*1000;
+                     b2_mid = fwhm_ballistic/(2*sqrt(2*log(2)));
+                    b1 = [0 1 0.01]; b2 = [b2_mid*0 b2_mid*10 b2_mid];
+%                    if dK<0, b1 = [0 1 0.1]; b2 = [0 10 0.01]; end
+%                    if dK<-0.225, b1 = [0.1 1 0.1]; b2 = [0.07 10 0.07]; end
+                    fitParams = [fitParams; b1; b2];
+
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(4)={'ncg_S1'};
+                        S1 = @Vibrations_cot.S1;
+
+                        % positive
+                        fitFuncStr = [fitFuncStr '+c1*exp(-1*(x-c2)^2/c3^2)'];
+                        dE = S1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        c2=[dE(ind)-0.4 dE(ind)+0.4 dE(ind)];
+                        c1=[0 0 0];
+                        if min_dE<1e-1, if dK < -0.3, c1=[0 0.5 0.05]; end; end
+                        if dK<4,  c3 = [0 2 0.15]; end
+                        fitParams = [fitParams; c1;c2;c3];
+
+                        % negative
+                        fitFuncStr = [fitFuncStr '+c4*exp(-1*(x-c5)^2/c6^2)'];
+                        dE = -S1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        c5=[dE(ind)-0.4 dE(ind)+0.4 dE(ind)];
+                        c4=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, c4=[0 0.5 0.05]; end; end
+                        if dK<4,  c6 = [0.01 2 0.15]; end
+                        fitParams = [fitParams; c4;c5;c6];
+                    end
+
+                    % === Longitudinal mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(5)={'ncg_LR'};
+                        LR= @(x) 24.12*sin(1.288*x)-5.381*sin(1.288*x).^3;
+
+                        % positive
+                        fitFuncStr = [fitFuncStr '+d1*exp(-1*(x-d2)^2/d3^2)'];
+                        dE = LR(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        d2=[dE(ind)-4 dE(ind)+4 dE(ind)];
+                        d1=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, d1=[0 1 0.5]; end; end
+                        if dK<4,  d3 = [0.1 3 0.2]; end
+                        fitParams = [fitParams; d1;d2;d3];
+
+                        % negative
+                        fitFuncStr = [fitFuncStr '+d4*exp(-1*(x-d5)^2/d6^2)'];
+                        dE = -LR(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        d5=[dE(ind)-4 dE(ind)+4 dE(ind)];
+                        d4=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, d4=[0 1 0.5]; end; end                        
+                        if dK<4,  d6 = [0.1 3 0.2]; end
+                        fitParams = [fitParams; d4;d5;d6];
+                    end
+
+                    % === isolated mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(6)={'ncg_isolate1'};                            
+                        isolate1 = @(x) repmat(0.65,size(x));
+
+                        % positive
+                        fitFuncStr = [fitFuncStr '+e1*exp(-1*(x-e2)^2/e3^2)'];
+                        dE = isolate1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        e2=[dE(ind)-0.35 dE(ind)+0.35 dE(ind)-0.3];
+                        e1=[0 0 0];
+                        if min_dE<1e-1, if 0.1<abs(dK) && abs(dK)<0.7, e1=[0 1 0.5]; end; end
+                        if dK<4,  e3 = [0.05 0.15 0.05]; end
+                        fitParams = [fitParams; e1;e2;e3];
+
+                        % negative
+                        fitFuncStr = [fitFuncStr '+e4*exp(-1*(x-e5)^2/e6^2)'];
+                        dE = -isolate1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        e5=[dE(ind)-0.35 dE(ind)+0.35 dE(ind)+0.3];
+                        e4=[0 0 0];
+                        if min_dE<1e-1, if 0.1<abs(dK) && abs(dK)<0.7, e4=[0 1 0.5]; end; end
+                        if dK<4,  e6 = [0.05 0.15 0.05]; end
+                        fitParams = [fitParams; e4;e5;e6];
+                    end
+                    
+                    % === Background - Gaussian(s) ===
+                    if 0
+                        fncName(7)={'ncg_Background'};                                                
+                        fitFuncStr = [fitFuncStr '+f1*exp(-1*(x-f2)^2/f3^2)'];
+                        f1 = [0 0 0];
+                        if -4 < dK && dK < -3, f1 = [0 0.025 0.01]; end                    
+                        f2 = [-0.5 0.5 0]; f3 = [4 20 6];
+                        fitParams = [fitParams; f1;f2;f3];
+                    end
+                    
+                    % === Manual interactive - Gaussian(s) ===
+                    if 0
+                        dE_man=[]; amp_man=[];
+                        fh = figure; plot(x,y);
+                        [dE_man, amp_man] = ginput(3);                    
+                        
+                        if length(dE_man)>0
+                            fncName(8)={'ncg_manual1'};                                                
+                            fitFuncStr = [fitFuncStr '+g1*exp(-1*(x-g2)^2/g3^2)'];
+                            g1 = [0 2 0.05];
+                            g2 = [dE_man(1)-0.3 dE_man(1)+0.3 dE_man(1)]; g3 = [0 2 0.01];
+                            fitParams = [fitParams; g1;g2;g3];
+                        end
+
+                        if length(dE_man)>1
+                            fncName(9)={'ncg_manual2'};                                                
+                            fitFuncStr = [fitFuncStr '+h1*exp(-1*(x-h2)^2/h3^2)'];
+                            h1 = [0 4 0.05];                     
+                            h2 = [dE_man(2)-2 dE_man(2)+2 dE_man(2)]; h3 = [0 10 1];
+                            fitParams = [fitParams; h1;h2;h3];
+                        end
+                        
+                        if length(dE_man)>2
+                            fncName(10)={'ncg_manual3'};                                                
+                            fitFuncStr = [fitFuncStr '+i1*exp(-1*(x-i2)^2/i3^2)'];
+                            i1 = [0 10 0.05];
+                            i2 = [0.5 20 dE_man(2)]; i3 = [0 20 1];
+                            fitParams = [fitParams; i1;i2;i3];
+                        end
+                        
+                        close(fh)
+                    end
+                    
+                    % === Manual fixed - Gaussian(s) ===
+                    if 1     
+                            fncName_tmp ={'ncg_manual4'};
+                            fitFuncStr_tmp =  '+j1*exp(-1*(x-j2)^2/j3^2)';
+                            j1 = []; j2 = []; j3 = [];
+%                             if dK< -0.15 && -0.25 <= dK  , j1 = [0 0.03 0.01]; j2 = [-0.08 0 -0.03]; j3 = [0.05 1 0.05]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.35 && -0.45 <= dK  , j1 = [0 0.03 0.01]; j2 = [-0.5 0 -0.25]; j3 = [0.05 1 0.05]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.45 && -0.55 <= dK  , j1 = [0 0.3 0.01]; j2 = [-1.2 -0.4 -0.7]; j3 = [0.05 1 0.05]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.55 && -0.65 <= dK  , j1 = [0 0.7 0.2]; j2 = [-1.5 -0.2 -0.5]; j3 = [0.05 1 0.05]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.65 && -1.15 <= dK  , j1 = [0 1 0.2]; j2 = [5 10 7.5]; j3 = [1 10 5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.15 && -1.25 <= dK  , j1 = [0 0.4 0.03]; j2 = [9 10 9.5]; j3 = [0 1 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.25 && -1.35 <= dK  , j1 = [0 0.4 0.02]; j2 = [10 12 10.7]; j3 = [0 1 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.35 && -1.45 <= dK  , j1 = [0 0.2 0.01]; j2 = [11.5 12.5 12]; j3 = [0 3 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.75 && -2.05 <= dK  , j1 = [0 0.2 0.1]; j2 = [6 15 9]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -2.05 && -2.35 <= dK  , j1 = [0 0.3 0.1]; j2 = [1 10 3]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -2.65 && -2.95 <= dK  , j1 = [0 0.3 0.1]; j2 = [1 10 3]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            
+                            fitParams = [fitParams; j1;j2;j3];
+                        
+                            fncName_tmp={'ncg_manual5'};
+                            fitFuncStr_tmp = '+k1*exp(-1*(x-k2)^2/k3^2)';    
+                            k1 = []; k2 = []; k3 = [];
+                            if dK< -0.25 && -0.35 <= dK , k1 = [0.01 0.5 0.02]; k2 = [-0.9 -0.5 -0.6]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.45 && -0.55 <= dK , k1 = [0.01 0.5 0.02]; k2 = [-1 0 -0.6]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.55 && -0.65 <= dK , k1 = [0.01 0.5 0.02]; k2 = [0.4 1.3 0.7]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.65 && -0.85 <= dK , k1 = [0.08 0.5 0.15]; k2 = [4 7.5 5.5]; k3 = [0.3 0.55 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.85 && -0.95 <= dK , k1 = [0.08 0.5 0.15]; k2 = [6 7 6.5]; k3 = [0.3 0.55 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.95 && -1.15 <= dK , k1 = [0.08 0.5 0.15]; k2 = [7.5 9.5 8]; k3 = [0.3 0.55 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.15 && -1.55 <= dK , k1 = [0 0.5 0.15]; k2 = [11 16 12]; k3 = [0 7 1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.75 && -2.05 <= dK  ,k1 = [0 0.05 0.02]; k2 = [-3 -0.3 -1.5]; k3 = [0 5 3]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -2.35 && -2.55 <= dK  ,k1 = [0 0.05 0.02]; k2 = [-3 -0.3 -1.5]; k3 = [0 5 3]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            
+                            fitParams = [fitParams; k1;k2;k3];
+                        
+                            fncName_tmp={'ncg_manual6'};                                                
+                            fitFuncStr_tmp = '+l1*exp(-1*(x-l2)^2/l3^2)';
+                            l1 = []; l2 = []; l3 = [];
+                            if dK< -0.45 && -0.55 <= dK, l1 = [0 0.5 0]; l2 = [-0.45 -0.3 -0.38]; l3 = [0 1 0.1]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.55 && -0.65 <= dK, l1 = [0 0.5 0]; l2 = [-0.5 -0.2 -0.3]; l3 = [0 1 0.3]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -0.75 && -1.15 <= dK, l1 = [0 0.05 0]; l2 = [1 3 2]; l3 = [0 2 0.3]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            if dK< -1.15 && -1.75 <= dK, l1 = [0 0.05 0.01]; l2 = [2 6 3]; l3 = [0 5 3]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            
+                            fitParams = [fitParams; l1;l2;l3];
+                            
+                            fncName_tmp={'ncg_manual7'};                                                
+                            fitFuncStr_tmp = '+m1*exp(-1*(x-m2)^2/m3^2)';
+                            m1=[];m2=[];m3=[];
+                            if dK< -0.45 && -0.65 <= dK, m1 = [0 0.5 0]; m2 = [-2 -1 -1.5]; m3 = [0 1 0.1]; fncName(14) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                            fitParams = [fitParams; m1;m2;m3];                        
+                        
+                    end
+                    
+                    % ===== Background =====
+                    fncName(15)={'lin_BG'};
+                    fitFuncStr = [fitFuncStr '+y0'];
+                    
+                    if dK< -0.55 && -0.65 <= dK, fitParams = [fitParams; 0 0.15 0.1];
+                    elseif dK< -0.45 && -0.55 <= dK, fitParams = [fitParams; 0 0.15 0.05];
+                    else, fitParams = [fitParams; 0 max(min(y),0.15) 0];end
+                    
+                case 5
+                    
+                    % === Jump - Lorenzian
+                    fncName(1) = {'cl_Jump'};
+                    fitFuncStr = [fitFuncStr '+' '(a1/pi)*((a2/2)/(x^2+(a2/2)^2))'];
+                    %                     [exp1] = BProb_baravis(2.55,4,dK,[],112); fwhm_lorentz = (exp1*1e9)*2*SE_hbar*1000/SE_e;
+                    %                     a1=[0 3 0.1]; a2=[fwhm_lorentz*0.9 fwhm_lorentz*1.1 fwhm_lorentz];
+                    if 1,  a1=[0 1 0.1]; a2=[0 10 0]; end
+                    if exist('a2_frm_isf','var'), a1=[0 1 0.1]; a2=[a2_frm_isf*0.95 a2_frm_isf*1.05 a2_frm_isf]; end
+                    fitParams = [fitParams; a1; a2];
+                    
+                    %                     fncName(2) = {'cl_Jump2'};
+                    %                     fitFuncStr = [fitFuncStr '+' '(a3/pi)*((a4/2)/(x^2+(a4/2)^2))'];
+                    %                     if dK < 0,  a3=[0 3 0.7]; a4=[0 1 0]; end
+                    %                     if dK < 0.3,  a3=[0 3 0.7]; a4=[0 1 0]; end
+                    %                     fitParams = [fitParams; a3; a4];
+                    
+                    
+                    % === Balistic - Gaussian ===
+                    fncName(3) = {'cg_Balistic'};
+                    fitFuncStr = [fitFuncStr '+' 'b1*exp(-1*x^2/b2^2)'];
+                    fwhm_ballistic = 2*sqrt(log(2))*SE_hbar*abs(dK*1e10)*Vibrations_cot.get_v0(Ts,104.15)/SE_e*1000;%fwhm_ballistic = 2*sqrt(log(2))*SE_hbar*abs(dK*1e10)*Vibrations.get_v0(Ts,104.15)/SE_e*1000;
+                    b2_mid = fwhm_ballistic/(2*sqrt(2*log(2)));
+                    b1 = [0 1 0.01]; b2 = [b2_mid*0 b2_mid*10 b2_mid];
+                    %                    if dK<0, b1 = [0 1 0.1]; b2 = [0 10 0.01]; end
+                    %                    if dK<-0.225, b1 = [0.1 1 0.1]; b2 = [0.07 10 0.07]; end
+                    fitParams = [fitParams; b1; b2];
+                    
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(4)={'ncg_S1'};
+                        S1 = @Vibrations_cot.S1;
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+c1*exp(-1*(x-c2)^2/c3^2)'];
+                        dE = S1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        c2=[dE(ind)-0.4 dE(ind)+0.4 dE(ind)];
+                        c1=[0 0 0];
+                        if min_dE<1e-1, if dK < -0.3, c1=[0 0.5 0.05]; end; end
+                        if dK<4,  c3 = [0 2 0.15]; end
+                        fitParams = [fitParams; c1;c2;c3];
+                        
+                        % negative
+                        fitFuncStr = [fitFuncStr '+c4*exp(-1*(x-c5)^2/c6^2)'];
+                        dE = -S1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        c5=[dE(ind)-0.4 dE(ind)+0.4 dE(ind)];
+                        c4=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, c4=[0 0.5 0.05]; end; end
+                        if dK<4,  c6 = [0.01 2 0.15]; end
+                        fitParams = [fitParams; c4;c5;c6];
+                    end
+                    
+                    % === Longitudinal mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(5)={'ncg_LR'};
+                        LR= @(x) 24.12*sin(1.288*x)-5.381*sin(1.288*x).^3;
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+d1*exp(-1*(x-d2)^2/d3^2)'];
+                        dE = LR(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        d2=[dE(ind)-4 dE(ind)+4 dE(ind)];
+                        d1=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, d1=[0 1 0.5]; end; end
+                        if dK<4,  d3 = [0.1 3 0.2]; end
+                        fitParams = [fitParams; d1;d2;d3];
+                        
+                        % negative
+                        fitFuncStr = [fitFuncStr '+d4*exp(-1*(x-d5)^2/d6^2)'];
+                        dE = -LR(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        d5=[dE(ind)-4 dE(ind)+4 dE(ind)];
+                        d4=[0 0 0];
+                        if min_dE<1e-1, if -4 < dK && dK < -0.65, d4=[0 1 0.5]; end; end
+                        if dK<4,  d6 = [0.1 3 0.2]; end
+                        fitParams = [fitParams; d4;d5;d6];
+                    end
+                    
+                    % === isolated mode - loss and gain Gaussian(s) ===
+                    if 0
+                        fncName(6)={'ncg_isolate1'};
+                        isolate1 = @(x) repmat(0.65,size(x));
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+e1*exp(-1*(x-e2)^2/e3^2)'];
+                        dE = isolate1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        e2=[dE(ind)-0.35 dE(ind)+0.35 dE(ind)-0.3];
+                        e1=[0 0 0];
+                        if min_dE<1e-1, if 0.1<abs(dK) && abs(dK)<0.7, e1=[0 1 0.5]; end; end
+                        if dK<4,  e3 = [0.05 0.15 0.05]; end
+                        fitParams = [fitParams; e1;e2;e3];
+                        
+                        % negative
+                        fitFuncStr = [fitFuncStr '+e4*exp(-1*(x-e5)^2/e6^2)'];
+                        dE = -isolate1(dk_scancurve);
+                        [min_dE, ind]=min(abs(dE-(dE_scancurve)));
+                        e5=[dE(ind)-0.35 dE(ind)+0.35 dE(ind)+0.3];
+                        e4=[0 0 0];
+                        if min_dE<1e-1, if 0.1<abs(dK) && abs(dK)<0.7, e4=[0 1 0.5]; end; end
+                        if dK<4,  e6 = [0.05 0.15 0.05]; end
+                        fitParams = [fitParams; e4;e5;e6];
+                    end
+                    
+                    % === Background - Gaussian(s) ===
+                    if 0
+                        fncName(7)={'ncg_Background'};
+                        fitFuncStr = [fitFuncStr '+f1*exp(-1*(x-f2)^2/f3^2)'];
+                        f1 = [0 0 0];
+                        if -4 < dK && dK < -3, f1 = [0 0.025 0.01]; end
+                        f2 = [-0.5 0.5 0]; f3 = [4 20 6];
+                        fitParams = [fitParams; f1;f2;f3];
+                    end
+                    
+                    % === Manual interactive - Gaussian(s) ===
+                    if 0
+                        dE_man=[]; amp_man=[];
+                        fh = figure; plot(x,y);
+                        [dE_man, amp_man] = ginput(3);
+                        
+                        if length(dE_man)>0
+                            fncName(8)={'ncg_manual1'};
+                            fitFuncStr = [fitFuncStr '+g1*exp(-1*(x-g2)^2/g3^2)'];
+                            g1 = [0 2 0.05];
+                            g2 = [dE_man(1)-0.3 dE_man(1)+0.3 dE_man(1)]; g3 = [0 2 0.01];
+                            fitParams = [fitParams; g1;g2;g3];
+                        end
+                        
+                        if length(dE_man)>1
+                            fncName(9)={'ncg_manual2'};
+                            fitFuncStr = [fitFuncStr '+h1*exp(-1*(x-h2)^2/h3^2)'];
+                            h1 = [0 4 0.05];
+                            h2 = [dE_man(2)-2 dE_man(2)+2 dE_man(2)]; h3 = [0 10 1];
+                            fitParams = [fitParams; h1;h2;h3];
+                        end
+                        
+                        if length(dE_man)>2
+                            fncName(10)={'ncg_manual3'};
+                            fitFuncStr = [fitFuncStr '+i1*exp(-1*(x-i2)^2/i3^2)'];
+                            i1 = [0 10 0.05];
+                            i2 = [0.5 20 dE_man(2)]; i3 = [0 20 1];
+                            fitParams = [fitParams; i1;i2;i3];
+                        end
+                        
+                        close(fh)
+                    end
+                    
+                    % === Manual fixed - Gaussian(s) ===
+                    if 1
+                        fncName_tmp ={'ncg_manual4'};
+                        fitFuncStr_tmp =  '+j1*exp(-1*(x-j2)^2/j3^2)';
+                        j1 = []; j2 = []; j3 = [];
+                        if dK< -0.25 && -0.35 <= dK  , j1 = [0 0.03 0.01]; j2 = [-0.3 0 -0.05]; j3 = [0.05 2 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.35 && -0.45 <= dK  , j1 = [0 0.1 0.03]; j2 = [-0.2 -0.1 -0.15]; j3 = [0 0.15 0.1]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        %if dK< -0.45 && -0.55 <= dK  , j1 = [0 0.3 0.01]; j2 = [-5 -0.4 -0.6]; j3 = [0.05 4 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.55 && -0.65 <= dK  , j1 = [0 0.7 0.2]; j2 = [-0.3 -0.1 -0.15]; j3 = [0 1 0.05]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.65 && -1.15 <= dK  , j1 = [0 1 0.2]; j2 = [5 10 7.5]; j3 = [1 10 5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.15 && -1.25 <= dK  , j1 = [0.01 0.4 0.03]; j2 = [9 11 10]; j3 = [0 3 1]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.25 && -1.35 <= dK  , j1 = [0.01 0.4 0.02]; j2 = [10 12 11]; j3 = [0 3 1]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.35 && -1.55 <= dK  , j1 = [0.01 0.2 0.01]; j2 = [11.5 13.5 12.5]; j3 = [0 2 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.65 && -1.95 <= dK  , j1 = [0 0.02 0.01]; j2 = [-3 -0.5 -1]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.95 && -2.05 <= dK  , j1 = [0 0.04 0.002]; j2 = [-2 -0.2 -1]; j3 = [0 4 0.5]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -2.05 && -2.35 <= dK  , j1 = [0 0.3 0.1]; j2 = [1 10 3]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -2.65 && -2.75 <= dK  , j1 = [0 0.03 0.002]; j2 = [1 5 3]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -2.75 && -2.95 <= dK  , j1 = [0 0.1 0.02]; j2 = [1 10 3]; j3 = [0 5 3]; fncName(11) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        
+                        fitParams = [fitParams; j1;j2;j3];
+                        
+                        fncName_tmp={'ncg_manual5'};
+                        fitFuncStr_tmp = '+k1*exp(-1*(x-k2)^2/k3^2)';
+                        k1 = []; k2 = []; k3 = [];
+                        if dK< -0.25 && -0.35 <= dK , k1 = [0.01 0.5 0.02]; k2 = [-0.9 -0.5 -0.6]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.45 && -0.55 <= dK , k1 = [0.01 0.5 0.02]; k2 = [-1 0 -0.6]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.55 && -0.65 <= dK , k1 = [0.01 0.5 0.02]; k2 = [0.4 1.3 0.7]; k3 = [0.01 0.3 0.1]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.65 && -0.75 <= dK , k1 = [0.08 0.5 0.15]; k2 = [5 6 5.5]; k3 = [0.3 0.55 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.75 && -0.95 <= dK , k1 = [0.08 0.5 0.15]; k2 = [5 8 7]; k3 = [0.3 0.55 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.95 && -1.15 <= dK , k1 = [0.08 0.5 0.15]; k2 = [7.5 13 8.5]; k3 = [0.3 0.7 0.4]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.15 && -1.55 <= dK , k1 = [0 0.5 0.15]; k2 = [7 16 12]; k3 = [0 15 7]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.95 && -2.05 <= dK , k1 = [0 0.3 0.1]; k2 = [11 13 12]; k3 = [0 12 3]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -2.35 && -2.55 <= dK  ,k1 = [0 0.02 0.002]; k2 = [-3 -0.3 -1.5]; k3 = [0 5 3]; fncName(12) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        
+                        fitParams = [fitParams; k1;k2;k3];
+                        
+                        fncName_tmp={'ncg_manual6'};
+                        fitFuncStr_tmp = '+l1*exp(-1*(x-l2)^2/l3^2)';
+                        l1 = []; l2 = []; l3 = [];
+                        if dK< -0.45 && -0.55 <= dK, l1 = [0 0.5 0]; l2 = [-0.9 -0.25 -0.4]; l3 = [0 1 0.1]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.55 && -0.65 <= dK, l1 = [0 0.5 0]; l2 = [-0.5 -0.2 -0.3]; l3 = [0 1 0.3]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -0.85 && -1.05 <= dK, l1 = [0 0.05 0]; l2 = [0.5 3 1]; l3 = [0 3 1]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.15 && -1.35 <= dK, l1 = [0 0.1 0.002]; l2 = [1 6 3]; l3 = [0 7 3]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.35 && -1.45 <= dK, l1 = [0 0.04 0.001]; l2 = [0.2 3 1]; l3 = [0 7 5]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        if dK< -1.45 && -1.55 <= dK, l1 = [0 0.04 0.001]; l2 = [0.5 2 1]; l3 = [0 7 5]; fncName(13) = fncName_tmp; fitFuncStr = [fitFuncStr fitFuncStr_tmp]; end
+                        
+                        fitParams = [fitParams; l1;l2;l3];
+                        
+                        fncName_tmp={'ncg_manual7'};
+                        fitFuncStr_tmp = '+m1*exp(-1*(x-m2)^2/m3^2)';
+                        m1 = []; m2 = []; m3 = [];
+                        fitParams = [fitParams; m1;m2;m3];
+                        
+                    end
+                    
+                    % ===== Background =====
+                    fncName(15)={'lin_BG'};
+                    fitFuncStr = [fitFuncStr '+y0'];
+                    if dK< -0.55 && -0.65 <= dK, fitParams = [fitParams; 0 0.15 0.1];
+                    elseif dK< -0.45 && -0.55 <= dK, fitParams = [fitParams; 0 0.15 0.05];
+                    elseif dK< -1.45 && -1.55 <= dK, fitParams = [fitParams; 0 0.15 0.05];
+                    else, fitParams = [fitParams; 0 max(min(y),0.15) 0];end
+                    
+               
                 otherwise
             end
 

@@ -139,17 +139,6 @@ classdef fit_dyFiles
             [~,indx]=sort(abs([res.dK]));
             res = res(indx);
             
-            for j=1:length(res)
-                [base_current,alpha1,real_sig,imag_sig,~,E0, ~] = extract_pol_dyfiles(res(j).filename);
-                [~,energy,~,corrected_spectrum]=...
-                    reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
-                if energy(1)>energy(end)
-                    res(j).Energ_meV=flip(energy-E0); res(j).SKw=flip(corrected_spectrum);
-                else
-                    res(j).Energ_meV=energy-E0; res(j).SKw=corrected_spectrum;
-                end
-            end
-            
             if isfield(res, 'endStatus')
                 for j=1:length(res)
                     gammaOffSpec = res(j).endStatus.gamma - res(j).endStatus.gammaSpecular;
@@ -376,14 +365,14 @@ classdef fit_dyFiles
                 
                 % find the elastic bin, then remove it (constant of the polarization curve)
                 SKw = SKw_orig;
-                elastic_bin = find(abs(Energ_meV)<6e-3);
+                elastic_bin = find(abs(Energ_meV)<1e-6);
                 if isempty(elastic_bin), elastic_bin=find(abs(Energ_meV)-min(abs(Energ_meV))<=0); end
                 elastSKw = mean(SKw(elastic_bin));
                 SKw(elastic_bin)=[]; Energ_meV(elastic_bin)=[];
                 
                 % remove neighbourhood of elastic bin, to help fitting the
                 % foot (comment if not desired)
-                if 1
+                if 0
                     near_elastic_bins = abs(Energ_meV)<0.18; % removing ueVs
                     near_elastSKw = SKw(near_elastic_bins); % not used
                     SKw(near_elastic_bins)=[]; Energ_meV(near_elastic_bins)=[];
@@ -415,7 +404,7 @@ classdef fit_dyFiles
                 
                 % set limits - first two are boundaries for the
                 % minCutOffVec, third is for maxCutOffVec
-                experLimits = [-5 -4 50];
+                experLimits = [-5 -2 20];
                 simulLimits = [-20.1 -20 20];
                 
                 if ~isExpData, limits = simulLimits; lngthOfLimitVecs = 1; else limits = experLimits; lngthOfLimitVecs = 2; end

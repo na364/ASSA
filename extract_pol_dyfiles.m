@@ -1,8 +1,5 @@
-function [base_current,alpha1,real_sig,imag_sig,reps,E0, maxI] = extract_pol_dyfiles(filenameWithPath)
-% load parameters required for tilted measurements from dy-files
-% 
+function [base_current,alpha1,real_sig,imag_sig,reps,E0, maxI] = extract_pol_dyfiles(meas)
 
-load (filenameWithPath);
 
 base_current=meas.ibase';
 real_sig=(meas.mean.Preal);
@@ -31,3 +28,4 @@ alpha1=meas.tilt *pi/180;
 E0=meas.beam.E0;
 
 maxI= max(meas.mean.A);
+end
