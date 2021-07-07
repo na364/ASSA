@@ -325,7 +325,7 @@ classdef fit_dyFiles
             
         end
         
-        function res = fit_dyFiles_freq_domain(res,buildFitFunction,resCase,plotMode,refRes)
+        function res = fit_dyFiles_freq_domain(res,buildFitFunction,resCase,plotMode,refRes,axisize)
             
             % ref Res is a res structure that provides the exponential
             % decay as fitted in the time domain. It can then be used to
@@ -335,7 +335,7 @@ classdef fit_dyFiles
             
             % Sort by dK, is is more comfortable (for the res file its done
             % in the preparation function
-            if exist('refRes', 'var') && ~isempty(refRes),
+            if exist('refRes', 'var') && ~isempty(refRes)
                 [tmp_dK,indx]=sort(abs([refRes.dK]));
                 refRes = refRes(indx);
             end
@@ -404,7 +404,7 @@ classdef fit_dyFiles
                 
                 % set limits - first two are boundaries for the
                 % minCutOffVec, third is for maxCutOffVec
-                experLimits = [-5 -2 20];
+                experLimits = [-5 -4 60];
                 simulLimits = [-20.1 -20 20];
                 
                 if ~isExpData, limits = simulLimits; lngthOfLimitVecs = 1; else limits = experLimits; lngthOfLimitVecs = 2; end
@@ -451,12 +451,12 @@ classdef fit_dyFiles
                     x=linspace(x_orig(1),x_orig(end),length(x_orig)*6);
                     fit_dyFiles.plot_funcional(x,ffun,gof,res(j).fncName);
                     title([res(j).filename(end-11:end-4) ' dK=' sprintf('%0.3f',res(j).dK) char(197) '^{-1}'])
+                    if exist('axisize','var'),if length(axisize)==4 && numel(axisize)==4, axis(axisize); end; end
                 end
                 
                 if isGraphicOn, waitbar(j/length(res)); else disp(['finished res(' num2str(j/length(res)) ')']); end
             end
             if isGraphicOn, close(h); end
-            %save('tmp_res.mat','res')
         end
         
         function res = fit_dyFiles_time_domain(res, varargin)
