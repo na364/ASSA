@@ -142,7 +142,7 @@ classdef postprocess_dyfiles
             % function, then, confirm manually. Following that, reassign
             % and calculate relevant fields such as Preal, Pimage, and Pmag.
             % TODO: It is not necessary to exclude points, better just to
-            % mak then as 'not for use' using a dedicated field. Then the
+            % make them as 'not for use' using a dedicated field. Then the
             % fitting can ignore them using the 'Exclude' field.
             
             maxstd = 3;
@@ -165,13 +165,13 @@ classdef postprocess_dyfiles
                 [tmpPreal,tmp_excld_frm_real,medianPreal,sigmaPreal] = hampel(loop.Preal(indx),numOfNeighbours,maxstd);
                 excld_frm_real = zeros(size(indx)); excld_frm_real(indx) = tmp_excld_frm_real;
                                 
-                % Now, finish with manual spike removal (to fine the
+                % Now, finish with manual spike removal (to refine the
                 % automated process. This implicitly assume that the
                 % auto-removal will always find the right ones, and
                 % sometimes will have 'false-positive' (but never
                 % false-negative). This is of-course not 100% true
                 
-                % Assume all finded spikes are false positive
+                % Assume all spikes found are false positive
                 if fixFalsePositive
                     excld_frm_real = zeros(size(excld_frm_real));
                     excld_frm_imag = zeros(size(excld_frm_imag));
