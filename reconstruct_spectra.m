@@ -1,4 +1,4 @@
-function [lambda_pos,energy,spectrum,corrected_spectrum]=reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,tail_current,force_zero, ofac,useWindow)
+function [lambda_pos,energy,spectrum,corrected_spectrum,exp_lambda,bsf]=reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,tail_current,force_zero, ofac,useWindow)
 % This function assumes that current_base is sorted
 % alpha1 - tilt angle in radians; alph1=atan(I2/I1)
 
@@ -19,7 +19,7 @@ base_current = base_current(:)';
 % plot(base_current, imag_sig, 'r')
 
 %% Process Time Domain Signal
-bs=real_sig+1*sqrt(-1)*imag_sig;
+bs=real_sig+1i*imag_sig;
 
 % if ibase is only positive or negative, mirror
 if all(base_current(:) >= 0) || all(base_current(:) <= 0) % is base_current only positive or negative?
@@ -54,8 +54,7 @@ else % non beamprofile measurement
     K0=beamprops('energy',E0,3)*1e10;
     V0=SE_hbar*K0/m;
     lambda0=SE_h/(m*V0);
-    t1=pi/2-(alpha1-pi/2);
-    lambda_shift=lambda0/tan(t1)-exp_lambda/sin(t1);
+    lambda_shift=-lambda0/tan(alpha1)+exp_lambda/sin(alpha1);
     
     if alpha1==pi
         lambda_shift=fliplr(exp_lambda);

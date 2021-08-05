@@ -24,7 +24,14 @@ imag_sig=imag_sig';
 % plot(base_current,imag_sig,'r')
 
 reps=meas.numloops;
+
 alpha1=meas.tilt *pi/180;
+if meas.tilt==315&&(strcmp(meas.psu,'deltafine')||strcmp(meas.psu,'deltacoarse'))
+    alpha1=135*pi/180; 
+end
+% when the psu is set to 'deltafine' or 'deltacoarse', the tilt angle is
+% set to 315 degrees. However, in our script it should be treated as 135.
+
 E0=meas.beam.E0;
 
 maxI= max(meas.mean.A);

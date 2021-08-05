@@ -52,10 +52,12 @@ classdef postprocess_dyfiles
                 try
                     tmp = load(filenameWithPath,'meas');
                     meas = postprocess_dyfiles.fix_dy_file(tmp.meas);
-                    meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive);
                     
-                    %perform Fourier transform and transform to get the
-                    %energy spectrum
+                    if isfield(meas,'setime')
+                        meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive);
+                    end
+                    
+                    %perform Fourier transform to get the energy spectrum
                     [base_current,alpha1,real_sig,imag_sig,~,E0, ~] = extract_pol_dyfiles(meas);
                     [~,energy,~,corrected_spectrum]=...
                         reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
@@ -138,7 +140,7 @@ classdef postprocess_dyfiles
             % Remove spikes by neighbours
             % The idea here is to find outliers in each loop and exclude
             % them from the data. Two itteration are used. First,
-            % find potential outliers outomatically using the hampel
+            % find potential outliers automatically using the hampel
             % function, then, confirm manually. Following that, reassign
             % and calculate relevant fields such as Preal, Pimage, and Pmag.
             % TODO: It is not necessary to exclude points, better just to
@@ -149,7 +151,7 @@ classdef postprocess_dyfiles
             cutoff_setime = 5; %in [ps]
             numOfNeighbours = 5;
             
-            indx = ~(abs(meas.setime)) < cutoff_setime;
+            indx = ~(abs(meas.setime) < cutoff_setime);
             setime = []; ibase = [];
             Preal = []; Pimag = [];
             deltaPhase = []; deltaI0 = [];
