@@ -19,6 +19,7 @@ classdef postprocess_dyfiles
             prsdArgs.addParameter('NumVec', [], @isnumeric);
             prsdArgs.addParameter('reProcessing', 0, @isnumeric);
             prsdArgs.addParameter('fixFalsePositive', 0, @isnumeric);
+            prsdArgs.addParameter('keepIlength', 0, @isnumeric);
             prsdArgs.parse(varargin{:});
             
             filenames = prsdArgs.Results.filenames;
@@ -26,6 +27,7 @@ classdef postprocess_dyfiles
             NumVec = prsdArgs.Results.NumVec;
             reProcessing = prsdArgs.Results.reProcessing;
             fixFalsePositive = prsdArgs.Results.fixFalsePositive;
+            keepIlength = prsdArgs.Results.keepIlength;
             
             % work-out the filenames
             [filenames, data_path] = postprocess_dyfiles.get_files({'filenames',filenames,'initStr',initStr,'NumVec',NumVec});
@@ -52,14 +54,11 @@ classdef postprocess_dyfiles
                 try
                     tmp = load(filenameWithPath,'meas');
                     meas = postprocess_dyfiles.fix_dy_file(tmp.meas);
+                    meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive,keepIlength);
                     
-                    if isfield(meas,'setime')
-                        meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive);
-                    end
-                    
-                    %perform Fourier transform to get the energy spectrum
-                    [base_current,alpha1,real_sig,imag_sig,~,E0, ~] = extract_pol_dyfiles(meas);
-                    [~,energy,~,corrected_spectrum]=...
+                    % perform Fourier transform to get the energy spectrum
+                    [base_current,alpha1,real_sig,imag_sig,~,E0,~] = extract_pol_dyfiles(meas);
+                    [~,energy,~,corrected_spectrum,~,~]=...
                         reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
                     if energy(1)>energy(end)
                         meas.Energ_meV=flip(energy-E0); meas.SKw=flip(corrected_spectrum);
@@ -109,7 +108,7 @@ classdef postprocess_dyfiles
             meas.dK = dK_for_gammaOfSpec_Ei(meas.beam.E0,gamma-gammaSpecular);            
         end
         
-        function meas = remove_spikes(meas,fixFalsePositive)
+        function meas = remove_spikes(meas,fixFalsePositive,keepIlength)
             
             % Remove spikes by comparing loops
             % TODO: don't replace with the median, but just recalculate the
@@ -151,10 +150,18 @@ classdef postprocess_dyfiles
             cutoff_setime = 5; %in [ps]
             numOfNeighbours = 5;
             
-            indx = ~(abs(meas.setime) < cutoff_setime);
+            if isfield(meas,'setime')
+                indx = ~((abs(meas.setime)) < cutoff_setime);
+            else
+                cutoff_ibase = 0.1; %in ampere
+                indx = ~((abs(meas.ibase)) < cutoff_ibase);
+            end
             setime = []; ibase = [];
             Preal = []; Pimag = [];
             deltaPhase = []; deltaI0 = [];
+            if keepIlength
+                ibase_orig = [];
+            end
             
             for i=1:meas.numloops
                 
@@ -180,24 +187,37 @@ classdef postprocess_dyfiles
                 end
                 
                 if find(excld_frm_real)>0
-                    excld_frm_real = CustomFuncs.peakPointsFromFigure('dataX',meas.setime,'dataY',meas.loop(i).Preal,'chosenPointsIndx',find(excld_frm_real),'titleStr',['Real, loop #' num2str(i)]);
+                    excld_frm_real = CustomFuncs.peakPointsFromFigure('dataX',meas.ibase,'dataY',meas.loop(i).Preal,'chosenPointsIndx',find(excld_frm_real),'titleStr',['Real, loop #' num2str(i)]);
                 end
                 if find(excld_frm_imag)>0
-                    excld_frm_imag = CustomFuncs.peakPointsFromFigure('dataX',meas.setime,'dataY',meas.loop(i).Pimag,'chosenPointsIndx',find(excld_frm_imag),'titleStr',['Imaginary, loop #' num2str(i)]);
+                    excld_frm_imag = CustomFuncs.peakPointsFromFigure('dataX',meas.ibase,'dataY',meas.loop(i).Pimag,'chosenPointsIndx',find(excld_frm_imag),'titleStr',['Imaginary, loop #' num2str(i)]);
                 end
 
                 Preal = [Preal loop.Preal(~(excld_frm_real | excld_frm_imag))];
                 Pimag = [Pimag loop.Pimag(~(excld_frm_real | excld_frm_imag))];
                 deltaPhase = [deltaPhase loop.deltaPhase(~(excld_frm_real | excld_frm_imag))];
                 deltaI0 = [deltaI0 loop.deltaI0(~(excld_frm_real | excld_frm_imag))];
-                setime = [setime meas.setime(~(excld_frm_real | excld_frm_imag))];
+                if isfield(meas,'setime'), setime = [setime meas.setime(~(excld_frm_real | excld_frm_imag))]; end
                 ibase = [ibase meas.ibase(~(excld_frm_real | excld_frm_imag))];
+                if keepIlength, ibase_orig = [ibase_orig meas.ibase]; end
                 
             end
             
             [meas.ibase, meas.mean.Preal,meas.mean.Pimag,meas.mean.deltaPhase,meas.mean.deltaI0] = CustomFuncs.merge_similar_points(ibase,Preal,Pimag,deltaPhase,deltaI0);
+            
+            % if we would like to keep the length of ibase, Preal, Pimag,
+            % deltaPhase, and deltaI0 unchanged, we can interpolate them.
+            if keepIlength
+                ibase_orig=uniquetol(ibase_orig);
+                meas.mean.Preal=interp1(meas.ibase,meas.mean.Preal,ibase_orig,'linear','extrap');
+                meas.mean.Pimag=interp1(meas.ibase,meas.mean.Pimag,ibase_orig,'linear','extrap');
+                meas.mean.deltaPhase=interp1(meas.ibase,meas.mean.deltaPhase,ibase_orig,'linear','extrap');
+                meas.mean.deltaI0=interp1(meas.ibase,meas.mean.deltaI0,ibase_orig,'linear','extrap');
+                meas.ibase=ibase_orig;
+            end
+            
             meas.mean.Pmag = sqrt(meas.mean.Preal.^2+meas.mean.Pimag.^2);
-            [meas.setime] = CustomFuncs.merge_similar_points(setime);            
+            if isfield(meas,'setime'), [meas.setime] = CustomFuncs.merge_similar_points(setime); end      
         end
         
         function [filenames, data_path] = get_files(varargin)
