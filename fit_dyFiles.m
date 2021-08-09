@@ -325,7 +325,7 @@ classdef fit_dyFiles
             
         end
         
-        function res = fit_dyFiles_freq_domain(res,buildFitFunction,resCase,plotMode,refRes,axisize)
+        function res = fit_dyFiles_freq_domain(res,buildFitFunction,resCase,plotMode,refRes,axisize,fitrange)
             
             % ref Res is a res structure that provides the exponential
             % decay as fitted in the time domain. It can then be used to
@@ -431,6 +431,15 @@ classdef fit_dyFiles
                 % ====== fit on the best range ======
                 [r,c] = find(rmse==min(rmse(:)));
                 res(j).dErange4fitting = [minCutOffVec(r):maxCutOffVec(c)];
+                
+                % if a fit range is supplied, use this range as the fitting
+                % range.
+                if exist('fitrange','var')
+                    if length(fitrange)==2 && numel(fitrange)==2
+                        res(j).dErange4fitting = find(fitrange(1) < Energ_meV & Energ_meV <= fitrange(2));
+                    end
+                end
+                
                 [ffun, gof, ~] = fit(Energ_meV(res(j).dErange4fitting),SKw(res(j).dErange4fitting),ftype);
                 res(j).ffun = ffun;
                 res(j).gof = gof;
