@@ -25,19 +25,19 @@ classdef fit_dyFiles
                 switch current_mode(1:3)
                     case 'cl_'
                         y = (cv(i)/pi)*((cv(i+1)/2)./(x.^2+(cv(i+1)/2)^2));
-                        modes{j}= [modes{j} 'x0=0' sprintf(', sig=%0.4f, A=%0.4f',cv(i+1),cv(i))];
+                        modes{j}= [modes{j} ': x_0=0' sprintf(', sig=%0.4f, A=%0.4f',cv(i+1),cv(i))];
                         i = i+2;
                     case 'ncl'
-                        y = (cv(i)/pi)*((cv(i+1)/2)./((x-cv(i+2)).^2+(cv(i+1)/2)^2));
-                        modes{j}= [modes{j} '=0'];
+                        y = (cv(i)/pi)*((cv(i+2)/2)./((x-cv(i+1)).^2+(cv(i+2)/2)^2));
+                        modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f, sig=%0.2f, A=%0.4f',cv(i+1),cv(i+2),cv(i))];
                         i = i+3;
                     case 'cg_'
                         y = cv(i)*exp(-1*x.^2/cv(i+1)^2);
-                        modes{j}= [modes{j} '=0, ' sprintf('sig=%0.2f',cv(i+1))];
+                        modes{j}= [modes{j} ': x_0=0, ' sprintf('sig=%0.2f',cv(i+1))];
                         i=i+2;
                     case 'ncg'
                         y = cv(i)*exp(-1*(x-cv(i+1)).^2/cv(i+2)^2);
-                        modes{j}= [modes{j} '=' sprintf('x0=%0.2f, sig=%0.2f, A=%0.4f',cv(i+1),cv(i+2),cv(i))];
+                        modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f, sig=%0.2f, A=%0.4f',cv(i+1),cv(i+2),cv(i))];
                         i=i+3;
                     case 'lin'
                         modes{j}=[]; continue;
@@ -54,7 +54,7 @@ classdef fit_dyFiles
                         y8 = (n8*n6*n4*n1/pi)*((n9*n7*n5*n2/2)./((x+(4*n3+n12)).^2+(n9*n7*n5*n2/2)^2));
                         y = y1+y2+y3+y4+y5+y6+y7+y8;
                         
-                        if n1>=0.01, modes{j}= [modes{j} '=' sprintf('x0=%0.2f,width=%0.2f',n3,n2)]; end
+                        if n1>=0.01, modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f,width=%0.2f',n3,n2)]; end
                         i=i+12;
                         if cv(i-12)<0.01, modes{j}=[]; continue; end
                         
@@ -70,7 +70,7 @@ classdef fit_dyFiles
                         y8 = (n6*n5*n4*n1/pi)*((n2/2)./((x+(4*n3+n9)).^2+(n2/2)^2));
                         y = y1+y2+y3+y4+y5+y6+y7+y8;
                         
-                        if n1>=0.01, modes{j}= [modes{j} '=' sprintf('x0=%0.2f,width=%0.2f',n3,n2)]; end
+                        if n1>=0.01, modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f,width=%0.2f',n3,n2)]; end
                         i=i+9;
                         if cv(i-9)<0.01, modes{j}=[]; continue; end
                         
@@ -82,13 +82,13 @@ classdef fit_dyFiles
                         y4 = (n4/pi)*((n5/2)./((x+2*n3).^2+(n5/2)^2));
                         y = y1+y2+y3+y4;
                         
-                        modes{j}= [modes{j} '=' sprintf('x0=%0.2f,width=%0.2f',n3,n2)];
+                        modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f,width=%0.2f',n3,n2)];
                         i=i+5;
                         
                     otherwise
                         y = cv(i)*exp(-1*(x-cv(i+1)).^2/cv(i+2)^2)+cv(i+3)*exp(-1*(x-cv(i+4)).^2/cv(i+5)^2);
-                        if cv(i)>0.01, modes{j}= [modes{j} '=' sprintf('%0.2f',cv(i+1))]; end
-                        if cv(i+3)>0.005, modes{j}= [modes{j} '=' sprintf('%0.2f',cv(i+4))]; end
+                        if cv(i)>0.01, modes{j}= [modes{j} ': ' sprintf('%0.2f',cv(i+1))]; end
+                        if cv(i+3)>0.005, modes{j}= [modes{j} ': ' sprintf('%0.2f',cv(i+4))]; end
                         i=i+6;
                         if cv(i-6)<0.01 && cv(i-3)<0.01, modes{j}=[]; continue; end
                 end
@@ -459,7 +459,7 @@ classdef fit_dyFiles
                     x_orig=Energ_meV(res(j).dErange4fitting);
                     x=linspace(x_orig(1),x_orig(end),length(x_orig)*6);
                     fit_dyFiles.plot_funcional(x,ffun,gof,res(j).fncName);
-                    title([res(j).filename(end-11:end-4) ' dK=' sprintf('%0.3f',res(j).dK) char(197) '^{-1}'])
+                    title([res(j).filename(end-11:end-4) ' dK=' sprintf('%0.3f',res(j).dK) ' ' char(197) '^{-1}' ' T=' sprintf('%d',res(j).temperature) ' K'])
                     if exist('axisize','var'),if length(axisize)==4 && numel(axisize)==4, axis(axisize); end; end
                 end
                 
