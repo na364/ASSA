@@ -1,4 +1,4 @@
-function [base_current,alpha1,real_sig,imag_sig,reps,E0, maxI] = extract_pol_dyfiles(meas)
+function [base_current,alpha1,real_sig,imag_sig,reps,E0] = extract_pol_dyfiles(meas)
 
 
 base_current=meas.ibase';
@@ -34,5 +34,4 @@ end
 
 E0=meas.beam.E0;
 
-maxI= max(meas.mean.A);
 end

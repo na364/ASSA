@@ -57,7 +57,7 @@ classdef postprocess_dyfiles
                     meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive,keepIlength);
                     
                     % perform Fourier transform to get the energy spectrum
-                    [base_current,alpha1,real_sig,imag_sig,~,E0,~] = extract_pol_dyfiles(meas);
+                    [base_current,alpha1,real_sig,imag_sig,~,E0] = extract_pol_dyfiles(meas);
                     [~,energy,~,corrected_spectrum,~,~]=...
                         reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
                     if energy(1)>energy(end)
