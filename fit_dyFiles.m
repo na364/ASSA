@@ -461,7 +461,6 @@ classdef fit_dyFiles
                     fit_dyFiles.plot_funcional(x,ffun,gof,res(j).fncName);
                     title([res(j).filename(end-11:end-4) ' dK=' sprintf('%0.3f',res(j).dK) ' ' char(197) '^{-1}' ' T=' sprintf('%d',res(j).temperature) ' K'])
                     if exist('axisize','var'),if length(axisize)==4 && numel(axisize)==4, axis(axisize); end; end
-                    title([res(j).filename(end-11:end-4) ' dK=' sprintf('%0.3f',res(j).dK) char(197) '^{-1}'])
                 end
                 
                 if isGraphicOn, waitbar(j/length(res)); else disp(['finished res(' num2str(j/length(res)) ')']); end
