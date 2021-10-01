@@ -1,22 +1,31 @@
-function [base_current,alpha1,real_sig,imag_sig,reps,E0] = extract_pol_dyfiles(meas)
+function [base_current,alpha1,real_sig,imag_sig,reps,E0] = extract_pol_dyfiles(meas,intpI)
 
-
-base_current=meas.ibase';
-real_sig=(meas.mean.Preal);
-imag_sig=(meas.mean.Pimag);
+if exist('intpI','var')&&~isempty(intpI)
+    base_current=intpI;
+    real_sig=interp1(meas.ibase,meas.mean.Preal,intpI);
+    imag_sig=interp1(meas.ibase,meas.mean.Pimag,intpI);
+% when the current is not equally spaced, use linear interpolation to make
+% the base current equally spaced, so that fft can be used later in reconstruct_spectra.m.
+else
+    base_current=meas.ibase;
+    real_sig=(meas.mean.Preal);
+    imag_sig=(meas.mean.Pimag);
+end
 
 % figure
 % hold on
 % plot(base_current,real_sig,'b')
 % plot(base_current,imag_sig,'r')
 
-
-% Flipping real_imag signals as function of current, to correct for -1*Ivec
-% problem:
-% real_sig=fliplr(real_sig)';
-% imag_sig=fliplr(imag_sig)';
-real_sig=real_sig';
-imag_sig=imag_sig';
+if size(base_current,1)<size(base_current,2)
+    base_current=base_current';
+end
+if size(real_sig,1)<size(real_sig,2)
+    real_sig=real_sig';
+end
+if size(imag_sig,1)<size(imag_sig,2)
+    imag_sig=imag_sig';
+end
 
 % figure
 % hold on

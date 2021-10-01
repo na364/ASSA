@@ -85,6 +85,12 @@ classdef fit_dyFiles
                         modes{j}= [modes{j} ': ' sprintf('x_0=%0.2f,width=%0.2f',n3,n2)];
                         i=i+5;
                         
+                    case 'pl4' % a fourth order polynomial
+                        for k=0:4, eval(['n' num2str(1+k) '=cv(' num2str(i+k) ');']); end
+                        y=n5+n1*x+n2*x.^2+n3*x.^3+n4*x.^4;
+                        
+                        modes{j}= [modes{j} ': ' sprintf('n_5=%0.2f,n_4=%0.2f',n5,n4)];
+                        i=i+5;
                     otherwise
                         y = cv(i)*exp(-1*(x-cv(i+1)).^2/cv(i+2)^2)+cv(i+3)*exp(-1*(x-cv(i+4)).^2/cv(i+5)^2);
                         if cv(i)>0.01, modes{j}= [modes{j} ': ' sprintf('%0.2f',cv(i+1))]; end

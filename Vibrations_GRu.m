@@ -9,16 +9,8 @@ classdef Vibrations_GRu
     methods(Static)
         
         function dE = RW(dK)
-            x = [0.0470385459103731;0.114196176747101;0.212691946098402;...
-                0.295513423169331;0.376104669382639;0.461172046380445;...
-                0.568640969393085;0.664890838817508;0.741011177269404;...
-                0.826041993105610;0.920045962603155;1.03416901702706;...
-                1.16168912566594;1.27351927295519;1.37411469758696;1.46354852188447];
-            y = [1.08826038511089;2.23904906159685;3.90117169817890;...
-                5.24337546571955;6.65002263310004;8.12053866778090;...
-                10.1674065949371;11.7012169643790;13.1082471534524;...
-                14.1289999651798;15.5344980674815;16.9382725721648;...
-                18.1481423447892;18.8453375813921;18.8367195933006;19.0218148264215];
+            x = [0, 0.034, 0.079, 0.121, 0.173, 0.223, 0.276, 0.346, 0.414, 0.493, 0.582, 1.0, 1.5, 2];
+            y = [0, 0.872, 1.738, 2.732, 3.670, 4.886, 6.139, 7.291, 8.573, 9.849, 11.04, 17, 19, 19];
             
             dE=interp1(x,y,abs(dK));
         end
@@ -355,7 +347,276 @@ classdef Vibrations_GRu
                     else
                         fitParams = [fitParams; 0 max(min(y),0.002) 0];
                     end
+                case 2
                     
+                    % === Balistic - Gaussian ===
+                    if 1
+                        fncName(1) = {'cl_{Jump}'};
+                        fitFuncStr = [fitFuncStr '+' '(a1/pi)*((a2/2)/(x^2+(a2/2)^2))'];
+%                         b2_mid = 2*sqrt(log(2))*SE_hbar*abs(dK*1e10)*Vibrations.get_v0(Ts,104.15)/SE_e*1000;
+%                         b1 = [0 0.5 0.01]; b2 = [b2_mid*0.95 b2_mid*1.05 b2_mid];
+                        a1 = [0 1 0.1]; a2 = [0 10 0.01];
+                        fitParams = [fitParams; a1; a2];
+                    end
+                    
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 1
+                        fncName(2)={'ncg_{RW}'};
+                        RW = @Vibrations_GRu.RW;
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+b1*exp(-1*(x-b2)^2/b3^2)'];
+                        dE = RW(dk_scancurve);
+                        [~, ind]=min(abs(dE-(dE_scancurve)));
+                        b2=[dE(ind)*0.95 dE(ind)*1.05 dE(ind)];
+                        b1=[0 0.1 0.05];
+                        b3=[0 6 1];
+                        if dK>-0.15, b2=[0 2 0.9]; end
+                        if dK>-0.65, b3=[0 1 0.4]; end
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                    
+                    if 1
+                        fncName(3)={'ncg_{postRW}'};
+                        RW = @Vibrations_GRu.RW;
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+e1*exp(-1*(x-e2)^2/e3^2)'];
+                        dE = RW(dk_scancurve);
+                        [~, ind]=min(abs(dE-(dE_scancurve)));
+                        e2=[dE(ind) dE(ind)*1.3 dE(ind)*1.1];
+                        e1=[0 0.1 0.0005];
+                        e3=[0.05 2 0.5];
+                        if dK>-0.15, e2=[0 5 4]; end
+                        if dK<-0.75, e1=[0 1 0.005]; end
+                        fitParams = [fitParams; e1;e2;e3];
+                    end
+                    
+                    if 1
+                        fncName(4)={'ncg_{main}'};
+                        RW = @Vibrations_GRu.RW;
+                        
+                        % positive
+                        fitFuncStr = [fitFuncStr '+d1*exp(-1*(x-d2)^2/d3^2)'];
+                        dE = RW(dk_scancurve);
+                        [~, ind]=min(abs(dE-(dE_scancurve)));
+                        d2=[0 10 5];
+                        d1=[0.0002 0.1 0.0005];
+                        d3=[0.05 15 5];
+                        if dK>-0.15, d2=[0 6 4]; end
+                        if dK<-0.65, d1=[0 1 0.005]; d3=[0.05 15 5]; end
+%                         if dK<-0.85, d3=[0 40 20]; end
+                        fitParams = [fitParams; d1;d2;d3];
+                    end
+                    
+                    % === Manual fixed - Gaussian(s) ===
+                    if 1
+                        fncName(10)={'ncg_{manual1}'};
+                        fitFuncStr = [fitFuncStr '+c1*exp(-1*(x-c2)^2/c3^2)'];
+                        c1 = [0 1 0.1]; c2 = [0 40 10]; c3 = [0 50 5];
+                        if dK<-0.45, c2=[0 40 20]; end
+                        if dK<-0.85, c2=[0 50 30]; end
+                        fitParams = [fitParams; c1;c2;c3];
+                    end
+                    
+                    if 1
+                        fncName(11)={'ncg_{manual2}'};
+                        fitFuncStr = [fitFuncStr '+j1*exp(-1*(x-j2)^2/j3^2)'];
+                        j1 = [0 1 0.2]; j2 = [-5 0 -1.5]; j3 = [0 50 3];
+                        
+                        fitParams = [fitParams; j1;j2;j3];
+                    end
+                    % ===== Background =====
+                    fncName(16)={'lin_BG'};
+                    fitFuncStr = [fitFuncStr '+y0'];
+                    
+                    fitParams = [fitParams; 0 max(min(y),0.002) 0];
+                case 3 % use one Lorentzian as the RW mode, one Gaussian as the LR mode,
+                    % and one Gaussian as the multiphonon background
+                    
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 1
+                        fncName(2)={'ncl_{RW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(a1/pi)*((a3/2)/((x-a2)^2+(a3/2)^2))'];
+                        a2=[0,20,3.76];
+                        a1=[0 0.1 0.05];
+                        a3=[0 6 0.15];
+                        fitParams = [fitParams; a1;a2;a3];
+                        
+                    end
+                    if 0
+                        fncName(2)={'ncg_{RW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+a1*exp(-1*(x-a2)^2/a3^2)'];
+                        b2=[0 10 3.75];
+                        b1=[0 0.1 0.01];
+                        b3=[0 14 0.2];
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                    
+                    if 0
+                        fncName(3)={'ncl_{postRW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(c1/pi)*((c3/2)/((x-c2)^2+(c3/2)^2))'];
+                        c2=[0,6,4];%c2=[4.0,4.2,4.0];
+                        c1=[0 0.1 0.02];
+                        c3=[0 2 0.1];
+                        fitParams = [fitParams; c1;c2;c3];
+                    end
+                    
+                    if 1
+                        fncName(3)={'ncg_{LR}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+b1*exp(-1*(x-b2)^2/b3^2)'];
+                        b2=[4.4 4.6 4.5];
+                        b1=[0 0.1 0.01];
+                        b3=[0 14 1];
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                   
+                    
+                    if 0
+                        fncName(4)={'ncl_{LR}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(c1/pi)*((c3/2)/((x-c2)^2+(c3/2)^2))'];
+                        c2=[4.4 4.6 4.5];
+                        c1=[0 0.1 0.01];
+                        c3=[0 15 1];
+                        fitParams = [fitParams; c1;c2;c3];
+                    end
+                                        
+                    if 1
+                        fncName(5)={'ncg_{mph}'};
+                        fitFuncStr = [fitFuncStr '+d1*exp(-1*(x-d2)^2/d3^2)'];
+                        d2=[0 15 6];
+                        d1=[0 0.1 0.001];
+                        d3=[0 15 1];
+                        fitParams = [fitParams; d1;d2;d3];
+                    end
+                    if 0
+                        fncName(8)={'pl4_{main}'};
+                        % a fourth order polynomial
+                        fitFuncStr = [fitFuncStr '+n5+n1*x+n2*x.^2+n3*x.^3+n4*x.^4'];
+                        n2=[-Inf Inf 0];
+                        n1=[-Inf Inf 0];
+                        n3=[-Inf Inf 0];
+                        n4=[-Inf Inf 0];
+                        n5=[-Inf Inf 0];
+                        fitParams = [fitParams; n1;n2;n3;n4;n5];
+                    end
+                    
+                    % ===== Background =====
+%                     fncName(16)={'lin_BG'};
+%                     fitFuncStr = [fitFuncStr '+y0'];
+%                     
+%                     fitParams = [fitParams; 0 0.1 0];
+                case 4 % use one Lorentzian as the RW mode, one Gaussian as the LR mode,
+                    % and two Gaussians as the multiphonon background
+                    
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 1
+                        fncName(2)={'ncl_{RW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(a1/pi)*((a3/2)/((x-a2)^2+(a3/2)^2))'];
+                        a2=[0,20,3.76];
+                        a1=[0 0.1 0.05];
+                        a3=[0 6 0.15];
+                        fitParams = [fitParams; a1;a2;a3];
+                        
+                    end
+                    if 0
+                        fncName(2)={'ncg_{RW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+a1*exp(-1*(x-a2)^2/a3^2)'];
+                        b2=[0 10 3.75];
+                        b1=[0 0.1 0.01];
+                        b3=[0 14 0.2];
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                    
+                    if 0
+                        fncName(3)={'ncl_{postRW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(c1/pi)*((c3/2)/((x-c2)^2+(c3/2)^2))'];
+                        c2=[0,6,4];%c2=[4.0,4.2,4.0];
+                        c1=[0 0.1 0.02];
+                        c3=[0 2 0.1];
+                        fitParams = [fitParams; c1;c2;c3];
+                    end
+                    
+                    if 1
+                        fncName(3)={'ncg_{LR}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+b1*exp(-1*(x-b2)^2/b3^2)'];
+                        b2=[4.4 4.6 4.5];
+                        b1=[0 0.1 0.01];
+                        b3=[0 14 1];
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                   
+                    
+                    if 1
+                        fncName(4)={'ncg_{mph1}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+c1*exp(-1*(x-c2)^2/c3^2)'];
+                        c2=[3 4.6 4];
+                        c1=[0 0.1 0.001];
+                        c3=[0 15 1];
+                        fitParams = [fitParams; c1;c2;c3];
+                    end
+                                        
+                    if 1
+                        fncName(5)={'ncg_{mph2}'};
+                        fitFuncStr = [fitFuncStr '+d1*exp(-1*(x-d2)^2/d3^2)'];
+                        d2=[0 15 6];
+                        d1=[0 0.1 0.001];
+                        d3=[0 15 1];
+                        fitParams = [fitParams; d1;d2;d3];
+                    end
+                    
+                    % ===== Background =====
+%                     fncName(16)={'lin_BG'};
+%                     fitFuncStr = [fitFuncStr '+y0'];
+%                     
+%                     fitParams = [fitParams; 0 0.1 0];
+
+                case 5 % use one Lorentzian as the RW mode, one Gaussian as the LR mode,
+                    % and a polynomial as the multiphonon background
+                    
+                    % === Raighly mode - loss and gain Gaussian(s) ===
+                    if 1
+                        fncName(2)={'ncl_{RW}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+(a1/pi)*((a3/2)/((x-a2)^2+(a3/2)^2))'];
+                        a2=[0,20,3.76];
+                        a1=[0 0.1 0.05];
+                        a3=[0 6 0.15];
+                        fitParams = [fitParams; a1;a2;a3];
+                        
+                    end
+                    
+                    if 1
+                        fncName(3)={'ncg_{LR}'};
+                        % positive
+                        fitFuncStr = [fitFuncStr '+b1*exp(-1*(x-b2)^2/b3^2)'];
+                        b2=[4.4 4.6 4.5];
+                        b1=[0 0.1 0.01];
+                        b3=[0 14 1];
+                        fitParams = [fitParams; b1;b2;b3];
+                    end
+                                        
+                    if 1
+                        fncName(5)={'pl4_{mph}'};
+                        fitFuncStr = [fitFuncStr '+d5+d1*x+d2*x.^2+d3*x.^3+d4*x.^4;'];
+                        
+                        d1=[-15 15 0];
+                        d2=[-15 15 0];
+                        d3=[-15 15 0];
+                        d4=[-15 15 0];
+                        d5=[-15 15 0];
+                        fitParams = [fitParams; d1;d2;d3;d4;d5];
+                    end
             end
         end
     end

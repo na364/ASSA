@@ -20,6 +20,7 @@ classdef postprocess_dyfiles
             prsdArgs.addParameter('reProcessing', 0, @isnumeric);
             prsdArgs.addParameter('fixFalsePositive', 0, @isnumeric);
             prsdArgs.addParameter('keepIlength', 0, @isnumeric);
+            prsdArgs.addParameter('intpI', [], @isnumeric);
             prsdArgs.parse(varargin{:});
             
             filenames = prsdArgs.Results.filenames;
@@ -28,6 +29,7 @@ classdef postprocess_dyfiles
             reProcessing = prsdArgs.Results.reProcessing;
             fixFalsePositive = prsdArgs.Results.fixFalsePositive;
             keepIlength = prsdArgs.Results.keepIlength;
+            intpI = prsdArgs.Results.intpI;
             
             % work-out the filenames
             [filenames, data_path] = postprocess_dyfiles.get_files({'filenames',filenames,'initStr',initStr,'NumVec',NumVec});
@@ -57,7 +59,7 @@ classdef postprocess_dyfiles
                     meas = postprocess_dyfiles.remove_spikes(meas,fixFalsePositive,keepIlength);
                     
                     % perform Fourier transform to get the energy spectrum
-                    [base_current,alpha1,real_sig,imag_sig,~,E0] = extract_pol_dyfiles(meas);
+                    [base_current,alpha1,real_sig,imag_sig,~,E0] = extract_pol_dyfiles(meas,intpI);
                     [~,energy,~,corrected_spectrum,~,~]=...
                         reconstruct_spectra(base_current,real_sig,imag_sig,E0,alpha1,base_current(end),0,1,0);
                     if energy(1)>energy(end)
